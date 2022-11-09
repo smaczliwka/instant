@@ -6,9 +6,8 @@ all:
 	$(BNFC) Instant.cf && \
 	# $(BNFC) --functor Instant.cf && \
 	happy -gca ParInstant.y && \
-	alex -g LexInstant.x 
-	# && \
-	# ghc --make Main.hs -odir ../build -hidir ../build -o ../interpreter
+	alex -g LexInstant.x && \
+	ghc --make Main.hs -odir ../build -hidir ../build -o ../compiler
 
 clean:
 	-rm -rf build
