@@ -78,9 +78,14 @@ evalE (ExpDiv exp1 exp2) loc =
             else if size1 > size2 then Right (size1, code1 . code2 . showString "idiv\n")
             else Right (size2, code2 . code1 . showString "swap\nidiv\n")
 
-printExp :: Code -> Code
-printExp code = showString "getstatic java/lang/System/out Ljava/io/PrintStream;\n"
-    . code . showString "invokevirtual java/io/PrintStream/println(I)V\n"
+printExp :: StackSize -> Code -> Code
+printExp size code =
+    if size == 1 then
+        showString "getstatic java/lang/System/out Ljava/io/PrintStream;\n"
+        . code . showString "invokevirtual java/io/PrintStream/println(I)V\n"
+    else
+        code . showString "getstatic java/lang/System/out Ljava/io/PrintStream;\n\
+        \swap\n" . showString "invokevirtual java/io/PrintStream/println(I)V\n"
 
 storeVar :: Ident -> Locals -> Code
 storeVar id loc =
@@ -94,7 +99,7 @@ evalS (SExp exp) loc =
     case (evalE exp loc) of
         Left error -> Left error
         Right (size, code) ->
-            Right (size + 1, loc, printExp code)
+            Right (max size 2, loc, printExp size code)
 
 evalS (SAss id exp) loc =
     case (evalE exp loc) of
