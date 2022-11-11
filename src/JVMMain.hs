@@ -16,29 +16,23 @@ type Err        = Either String
 type ParseFun a = [Token] -> Err a
 
 runFile :: ParseFun Program -> FilePath -> IO ()
--- runFile parseFun filePath = putStrLn filePath >> readFile filePath >>= run parseFun
+
 runFile parseFun filePath = do
     instantSourceCode <- readFile filePath
     let className = takeBaseName filePath
     let jasminSourceCodeFilePath = replaceExtension filePath "j"
-    let outputPath = takeDirectory filePath
-    -- res <- run className parseFun instantSourceCode
-    -- putStrLn className
-    -- putStrLn jasminSourceCodeFilePath
-    -- putStrLn outputPath
+    let outputDirPath = takeDirectory filePath
     case run className parseFun instantSourceCode of
-        Left error -> hPutStrLn stderr error
+        Left error -> do
+          hPutStrLn stderr error
+          exitFailure
         Right code -> do
             writeFile jasminSourceCodeFilePath code
-            (exitcode, out, err) <- readProcessWithExitCode ("java") ["-jar", "./lib/jasmin.jar", "-d", outputPath, jasminSourceCodeFilePath] ""
-            putStrLn (show exitcode)
-            putStrLn out
-            putStrLn err
+            (exitcode, out, err) <- readProcessWithExitCode ("java") ["-jar", "./lib/jasmin.jar", "-d", outputDirPath, jasminSourceCodeFilePath] ""
             case exitcode of
                 ExitSuccess ->
                     exitSuccess
                 ExitFailure i -> do
-                    putStrLn "dupa"
                     hPutStrLn stderr $ "An error occurred (exit code: " ++ show i ++ ")"
                     hPutStrLn stderr out
                     hPutStrLn stderr err
@@ -57,8 +51,7 @@ usage = do
   putStrLn $ unlines
     [ "usage: Call with one of the following argument combinations:"
     , "  --help          Display this help message."
-    , "  (no arguments)  Parse stdin verbosely."
-    , "  (files)         Parse content of files verbosely."
+    , "  (files)         Compile files."
     ]
 
 main :: IO ()
@@ -66,6 +59,5 @@ main = do
   args <- getArgs
   case args of
     ["--help"] -> usage
-    -- []         -> getContents >>= run pProgram
     fs         -> mapM_ (runFile pProgram) fs
 
