@@ -10,7 +10,7 @@ import System.Process
 import AbsInstant   (Program)
 import LexInstant   (Token)
 import ParInstant   (pProgram, myLexer)
-import Compiler     (compile)
+import LLVMCompiler (compile)
 
 type Err        = Either String
 type ParseFun a = [Token] -> Err a
@@ -19,36 +19,26 @@ runFile :: ParseFun Program -> FilePath -> IO ()
 -- runFile parseFun filePath = putStrLn filePath >> readFile filePath >>= run parseFun
 runFile parseFun filePath = do
     instantSourceCode <- readFile filePath
-    let className = takeBaseName filePath
-    let jasminSourceCodeFilePath = replaceExtension filePath "j"
-    let outputPath = takeDirectory filePath
-    -- res <- run className parseFun instantSourceCode
-    -- putStrLn className
-    -- putStrLn jasminSourceCodeFilePath
-    -- putStrLn outputPath
-    case run className parseFun instantSourceCode of
+    let llvmSourceCodeFilePath = replaceExtension filePath "ll"
+    let llvmByteCodeFilePath = replaceExtension filePath "bc"
+    case run parseFun instantSourceCode of
         Left error -> hPutStrLn stderr error
         Right code -> do
-            writeFile jasminSourceCodeFilePath code
-            (exitcode, out, err) <- readProcessWithExitCode ("java") ["-jar", "./lib/jasmin.jar", "-d", outputPath, jasminSourceCodeFilePath] ""
-            putStrLn (show exitcode)
-            putStrLn out
-            putStrLn err
+            writeFile llvmSourceCodeFilePath code
+            (exitcode, out, err) <- readProcessWithExitCode ("llvm-as") ["-o", llvmByteCodeFilePath, llvmSourceCodeFilePath] ""
             case exitcode of
                 ExitSuccess ->
                     exitSuccess
                 ExitFailure i -> do
-                    putStrLn "dupa"
                     hPutStrLn stderr $ "An error occurred (exit code: " ++ show i ++ ")"
                     hPutStrLn stderr out
                     hPutStrLn stderr err
                     exitFailure
 
-run :: String -> ParseFun Program -> String -> Either String String
-run className parseFun s =
-  case parseFun ts of
+run :: ParseFun Program -> String -> Either String String
+run parseFun s = case parseFun ts of
     Left error -> Left error
-    Right prog -> compile className prog
+    Right prog -> compile prog
   where
   ts = myLexer s
 
@@ -68,4 +58,3 @@ main = do
     ["--help"] -> usage
     -- []         -> getContents >>= run pProgram
     fs         -> mapM_ (runFile pProgram) fs
-

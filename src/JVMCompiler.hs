@@ -1,4 +1,4 @@
-module Compiler(compile) where
+module JVMCompiler(compile) where
 
 import AbsInstant
 import Data.Map

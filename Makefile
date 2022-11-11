@@ -7,7 +7,8 @@ all:
 	# $(BNFC) --functor Instant.cf && \
 	happy -gca ParInstant.y && \
 	alex -g LexInstant.x && \
-	ghc --make Main.hs -odir ../build -hidir ../build -o ../compiler
+	ghc --make JVMMain.hs -odir ../build -hidir ../build -o ../insc_jvm && \
+	ghc --make LLVMMain.hs -odir ../build -hidir ../build -o ../insc_llvm
 
 clean:
 	-rm -rf build
