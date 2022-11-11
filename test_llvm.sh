@@ -13,10 +13,10 @@ else
   for f in ${FILES}
   do
     echo $f
-    java "${f::-4}">tmp.out
+    lli "${f::-4}".bc>tmp.out
     diff tmp.out "${f::-4}".output
-    rm "${f::-4}".j
-    rm "${f::-4}".class
+    rm "${f::-4}".ll
+    rm "${f::-4}".bc
   done
   rm tmp.out
 fi

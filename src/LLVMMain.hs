@@ -16,13 +16,15 @@ type Err        = Either String
 type ParseFun a = [Token] -> Err a
 
 runFile :: ParseFun Program -> FilePath -> IO ()
--- runFile parseFun filePath = putStrLn filePath >> readFile filePath >>= run parseFun
+
 runFile parseFun filePath = do
     instantSourceCode <- readFile filePath
     let llvmSourceCodeFilePath = replaceExtension filePath "ll"
     let llvmByteCodeFilePath = replaceExtension filePath "bc"
     case run parseFun instantSourceCode of
-        Left error -> hPutStrLn stderr error
+        Left error -> do
+          hPutStrLn stderr error
+          exitFailure
         Right code -> do
             writeFile llvmSourceCodeFilePath code
             (exitcode, out, err) <- readProcessWithExitCode ("llvm-as") ["-o", llvmByteCodeFilePath, llvmSourceCodeFilePath] ""
@@ -47,8 +49,7 @@ usage = do
   putStrLn $ unlines
     [ "usage: Call with one of the following argument combinations:"
     , "  --help          Display this help message."
-    , "  (no arguments)  Parse stdin verbosely."
-    , "  (files)         Parse content of files verbosely."
+    , "  (files)         Compile files."
     ]
 
 main :: IO ()
@@ -56,5 +57,4 @@ main = do
   args <- getArgs
   case args of
     ["--help"] -> usage
-    -- []         -> getContents >>= run pProgram
     fs         -> mapM_ (runFile pProgram) fs
